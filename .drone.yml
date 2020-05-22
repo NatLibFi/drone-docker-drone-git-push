@@ -1,0 +1,51 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: generate-tags
+  image: quay.io/natlibfi/drone-gen-tags
+
+- name: clone-upstream
+  image: alpine/git
+  commands:
+    - git clone -b master https://github.com/appleboy/drone-git-push repo
+  
+- name: build
+  image: golang:1
+  environment:
+    GOOS: linux
+    GOARCH: amd64
+    CGO_ENABLED: 0    
+  commands:
+    - cd repo
+    - go build -a -tags netgo -o release/linux/amd64/drone-git-push
+
+- name: docker
+  image: plugins/docker
+  settings:
+    context: repo
+    dockerfile: repo/docker/Dockerfile.linux.amd64
+    repo: quay.io/natlibfi/drone-plugin-git-push
+    registry: quay.io
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+---
+kind: secret
+name: docker_username
+data: tVfmgDQxnnE1Ph2Mc92eEpa0tXslHzomSJ5QGCUXekdGAEwabLCuuhjMquG5Az4Tgxs7W3NLY3/04A==
+---
+kind: secret
+name: docker_password
+data: CmDQPhXoaWBXfmgQfF9YJDGbFtYx4RT/goxWLK2YIvVrtVEqNoLDlgljF3yecib1nPby/qi4Vf5Nr88ksUmiDHGW7/1kgJVbxp7uxqk9azujiKb/xKoE1CpsQH0=
+---
+kind: signature
+hmac: ed77876a1a786159475259cc84c96de62e6d89eff6bcf5b4c500fc6d211f5e92
+
+...
